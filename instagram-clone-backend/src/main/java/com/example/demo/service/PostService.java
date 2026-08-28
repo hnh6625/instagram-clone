@@ -39,7 +39,7 @@ public class PostService {
         this.rabbitTemplate = rabbitTemplate;
     }
 
-    public Post createPost(String username, MultipartFile file, String caption, String mediaType) throws IOException {
+    public PostResponse createPost(String username, MultipartFile file, String caption, String mediaType) throws IOException {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("Không tìm thấy user"));
 
@@ -58,7 +58,7 @@ public class PostService {
         MediaProcessingMessage message = new MediaProcessingMessage(result.getId(), rawFilePath,mediaType);
 
         rabbitTemplate.convertAndSend(RabbitMQConfig.MEDIA_EXCHANGE, RabbitMQConfig.MEDIA_ROUTING_KEY, message);
-        return result;
+        return convertToPostResponse(result);
     }
 
     public PostResponse getPostById(Long id) {

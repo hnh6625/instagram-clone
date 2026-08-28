@@ -12,6 +12,7 @@ import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
@@ -36,6 +37,7 @@ public class MediaProcessingListener {
     public void handleMessage(MediaProcessingMessage message,
                               @Header(name = "x-death", required = false) List<Map<String, Object>> xDeaths) throws IOException, InterruptedException {
         long retryCount = 0;
+
         if (xDeaths != null && !xDeaths.isEmpty()) {
             retryCount = (Long) xDeaths.get(0).get("count");
         }
@@ -60,23 +62,37 @@ public class MediaProcessingListener {
         Post post = postRepository.findById(message.getPostId())
                 .orElseThrow(() -> new RuntimeException("post not found"));
 
-        Path inputPath = Paths.get("uploads", "raw", message.getRawFileName());
+        String rawKey = message.getRawFileName();
 
-        String rawFileName = message.getRawFileName();
-        String extension = rawFileName.substring(rawFileName.lastIndexOf('.'));
+        String extension = rawKey.substring(rawKey.lastIndexOf('.'));
+        String fileName = UUID.randomUUID().toString() + extension;
 
-        String outputFileName = UUID.randomUUID() + extension;
+        Path inputPath = Paths.get(
+                "temp",
+                "raw",
+                fileName
+        );
 
-        Path outputPath = Paths.get("uploads", "processed", outputFileName);
-        String thumbnailFileName = outputFileName.substring(
+        Path outputPath = Paths.get(
+                "temp",
+                "processed" ,
+                fileName
+        );
+
+        String thumbnailFileName = fileName.substring(
                 0,
-                outputFileName.lastIndexOf('.')
+                fileName.lastIndexOf('.')
         ) + "_thumb.jpg";
 
         Path thumbnailPath = Paths.get(
-                "uploads",
+                "temp",
                 "processed",
                 thumbnailFileName
+        );
+
+        mediaProcessingService.downloadFromMinio(
+                rawKey,
+                inputPath.toString()
         );
 
         MediaType mediaType = MediaType.valueOf(message.getMediaType());
@@ -104,12 +120,32 @@ public class MediaProcessingListener {
             );
         }
 
+        String processedKey = "processed/" +fileName;
+        String thumbnailKey = "thumbnail/" +thumbnailFileName;
+
+        mediaProcessingService.uploadToMinio(
+                outputPath.toString(),
+                processedKey
+        );
+
+        mediaProcessingService.uploadToMinio(
+                thumbnailPath.toString(),
+                thumbnailKey
+        );
+
+        String mediaUrl = mediaProcessingService.buildMinioUrl(processedKey);
+        String thumbnailUrl = mediaProcessingService.buildMinioUrl(thumbnailKey);
+
         Post updatedPost = post.toBuilder()
-                .mediaUrl(outputPath.toString())
-                .thumbnailUrl(thumbnailPath.toString())
+                .mediaUrl(mediaUrl)
+                .thumbnailUrl(thumbnailUrl)
                 .status(PostStatus.READY)
                 .build();
 
         postRepository.save(updatedPost);
+
+        Files.deleteIfExists(inputPath);
+        Files.deleteIfExists(outputPath);
+        Files.deleteIfExists(thumbnailPath);
     }
 }

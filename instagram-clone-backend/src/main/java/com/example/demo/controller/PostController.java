@@ -24,12 +24,12 @@ public class PostController {
     }
 
     @PostMapping(consumes = "multipart/form-data")
-    public ResponseEntity<Post> createPost(Authentication authentication,
+    public ResponseEntity<PostResponse> createPost(Authentication authentication,
                                            @RequestParam("file")MultipartFile file,
                                            @RequestParam("caption") String caption,
                                            @RequestParam("mediaType")  String mediaType) throws IOException {
         CustomUserDetails customUserDetails = (CustomUserDetails) authentication.getPrincipal();
-        Post result = postService.createPost(customUserDetails.getUsername(), file, caption, mediaType);
+        PostResponse result = postService.createPost(customUserDetails.getUsername(), file, caption, mediaType);
         return ResponseEntity.status(HttpStatus.CREATED).body(result);
     }
 

@@ -25,3 +25,36 @@ jwt:
   secret: YOUR_JWT_SECRET_HERE
   expiration: 86400000
 
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5433/instagram_clone
+    username: postgres
+    password: 160603
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+jwt:
+  secret: 7a9d4c2f5e8b1a3c6d9f0e4b7a1c8d5e9f2a6b3c1d7e4f8a9b2c5d6e1f3a7b9
+  expiration: 86400000
+
+minio:
+  endpoint: http://localhost:9000
+  access-key: YOUR_USER_HERE
+  secret-key: YOUR_PASSWORD_HERE
+  bucket: instagram-media
+
+

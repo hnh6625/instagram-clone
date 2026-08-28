@@ -1,7 +1,11 @@
 package com.example.worker.service;
 
-import org.springframework.context.annotation.Bean;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -11,6 +15,41 @@ import java.util.List;
 
 @Service
 public class MediaProcessingService {
+
+    private final S3Client s3Client;
+
+    @Value("${minio.bucket}")
+    private String bucketName;
+
+    @Value("${minio.endpoint}")
+    private String minioEndpoint;
+
+    public MediaProcessingService(S3Client s3Client) {
+        this.s3Client = s3Client;
+    }
+
+    public void downloadFromMinio(String key, String localPath) throws IOException {
+        Path path =  Paths.get(localPath);
+        Files.createDirectories(path.getParent());
+
+        GetObjectRequest request = GetObjectRequest.builder()
+                .bucket(bucketName)
+                .key(key)
+                .build();
+
+        s3Client.getObject(request,path);
+    }
+
+    public void uploadToMinio(String localPath,String key) throws IOException {
+        Path path = Paths.get(localPath);
+
+        PutObjectRequest request = PutObjectRequest.builder()
+                .bucket(bucketName)
+                .key(key)
+                .build();
+
+        s3Client.putObject(request, RequestBody.fromFile(path));
+    }
     public String processImage(String inputPath, String outputPath) throws IOException, InterruptedException {
         List<String> command = List.of(
                 "ffmpeg", "-y",
@@ -80,4 +119,9 @@ public class MediaProcessingService {
 
         throw new IOException("FFmpeg failed with exit code: " + exitCode);
     }
+
+    public String buildMinioUrl(String key) {
+        return minioEndpoint + "/" + bucketName + "/" + key;
+    }
+
 }
