@@ -105,6 +105,7 @@ public class PostService {
                 .user(userResponse)
                 .mediaUrl(post.getMediaUrl())
                 .mediaType(post.getMediaType())
+                .thumbnailUrl(post.getThumbnailUrl())
                 .caption(post.getCaption())
                 .status(post.getStatus())
                 .createdAt(post.getCreatedAt())

@@ -14,6 +14,7 @@ public class PostResponse {
     private UserResponse user;
     private String mediaUrl;
     private MediaType mediaType;
+    private String thumbnailUrl;
     private String caption;
     private PostStatus status;
     private Instant createdAt;
