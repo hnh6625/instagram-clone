@@ -1,0 +1,23 @@
+# Build output
+**/target/
+**/build/
+
+# Frontend dependencies
+**/node_modules/
+**/dist/
+
+# Uploaded files (test data, không cần lưu)
+**/uploads/
+
+# IDE
+**/.idea/
+**/.vscode/
+*.iml
+
+# Sensitive config
+**/application.yml
+**/application-*.yml
+
+# OS
+.DS_Store
+Thumbs.db

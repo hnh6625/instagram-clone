@@ -1,0 +1,23 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: instagram-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 160603
+      POSTGRES_DB: instagram_clone
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: instagram-rabbitmq
+    ports:
+      - "5672:5672"     # port giao thức AMQP - dùng để code Java kết nối
+      - "15672:15672"   # port giao diện quản lý qua web
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+volumes:
+  postgres_data:
