@@ -83,7 +83,7 @@ public class PostService {
     }
 
     public List<PostResponse> getFeed() {
-        List<Post> posts = postRepository.OrderByCreatedAtDesc();
+        List<Post> posts = postRepository.findAllByOrderByCreatedAtDesc();
         List<PostResponse> postResponseList = new ArrayList<>();
 
         for (Post post : posts) {
