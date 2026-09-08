@@ -1,5 +1,6 @@
 package com.example.demo.messaging;
 
+import com.example.demo.entity.MediaType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -10,7 +11,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class MediaProcessingMessage {
-    private Long postId;
+    private Long postMediaId;
     private String rawFileName;
-    private String mediaType;
+    private MediaType mediaType;
 }

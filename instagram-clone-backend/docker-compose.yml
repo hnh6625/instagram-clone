@@ -31,6 +31,28 @@ services:
      command: server /data --console-address ":9001"
      volumes:
        - minio_data:/data
+
+  worker:
+    build:
+      context: ../instagram-clone-worker
+    depends_on:
+      - postgres
+      - minio
+      - rabbitmq
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/instagram_clone
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: 160603
+
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: guest
+      SPRING_RABBITMQ_PASSWORD: guest
+
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin123
+      MINIO_BUCKET: instagram-media
 volumes:
   postgres_data:
   minio_data:

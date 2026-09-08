@@ -5,7 +5,8 @@ import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "post")
@@ -22,19 +23,16 @@ public class Post {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    private String mediaUrl;
-    private String thumbnailUrl;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private MediaType mediaType;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private PostStatus status;
-
     private String caption;
 
     @CreationTimestamp
     private Instant createdAt;
+
+    @OneToMany(
+            mappedBy = "post",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    @OrderBy("position ASC")
+    private List<PostMedia> media = new ArrayList<>();
 }

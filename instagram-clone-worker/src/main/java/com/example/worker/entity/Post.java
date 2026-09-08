@@ -16,16 +16,6 @@ public class Post {
     @Id
     private Long id;
 
-    private String mediaUrl;
-
-    private String thumbnailUrl;
-
-    @Enumerated(EnumType.STRING)
-    private MediaType mediaType;
-
-    @Enumerated(EnumType.STRING)
-    private PostStatus status;
-
     private String caption;
 
     @CreationTimestamp

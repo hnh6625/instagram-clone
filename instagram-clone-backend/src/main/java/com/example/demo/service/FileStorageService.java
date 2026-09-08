@@ -43,7 +43,6 @@ public class FileStorageService {
                 .build();
 
         s3Client.putObject(request, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
-
         return rawKey;
     }
 }
