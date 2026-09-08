@@ -6,16 +6,15 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.time.Instant;
+import java.util.List;
 
 @Data
 @Builder
 public class PostResponse {
     private Long id;
     private UserResponse user;
-    private String mediaUrl;
-    private MediaType mediaType;
-    private String thumbnailUrl;
     private String caption;
     private PostStatus status;
+    private List<PostMediaResponse> media;
     private Instant createdAt;
 }

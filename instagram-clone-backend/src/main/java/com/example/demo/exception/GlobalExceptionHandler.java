@@ -40,4 +40,9 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleUnauthorizedAction(UnauthorizedActionException ex) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(createErrorBody(ex));
     }
+
+    @ExceptionHandler(UnsupportedMediaTypeException.class)
+    public ResponseEntity<Map<String, String>> handleUnsupportedMediaType(UnsupportedMediaTypeException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(createErrorBody(ex));
+    }
 }

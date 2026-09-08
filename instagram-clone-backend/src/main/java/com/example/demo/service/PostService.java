@@ -2,16 +2,16 @@ package com.example.demo.service;
 
 import com.example.demo.config.RabbitMQConfig;
 import com.example.demo.dto.CreatePostRequest;
+import com.example.demo.dto.PostMediaResponse;
 import com.example.demo.dto.PostResponse;
 import com.example.demo.dto.UserResponse;
-import com.example.demo.entity.MediaType;
-import com.example.demo.entity.Post;
-import com.example.demo.entity.PostStatus;
-import com.example.demo.entity.User;
+import com.example.demo.entity.*;
 import com.example.demo.exception.PostNotFoundException;
 import com.example.demo.exception.UnauthorizedActionException;
+import com.example.demo.exception.UnsupportedMediaTypeException;
 import com.example.demo.exception.UserNotFoundException;
 import com.example.demo.messaging.MediaProcessingMessage;
+import com.example.demo.repository.PostMediaRepository;
 import com.example.demo.repository.PostRepository;
 import com.example.demo.repository.UserRepository;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -28,37 +28,49 @@ import java.util.Optional;
 public class PostService {
 
     private final PostRepository postRepository;
+    private final PostMediaRepository  postMediaRepository;
     private final UserRepository userRepository;
     private final FileStorageService fileStorageService;
     private final RabbitTemplate rabbitTemplate;
 
-    public PostService(PostRepository postRepository, UserRepository userRepository, FileStorageService fileStorageService, RabbitTemplate rabbitTemplate) {
+    public PostService(PostRepository postRepository, PostMediaRepository postMediaRepository, UserRepository userRepository, FileStorageService fileStorageService, RabbitTemplate rabbitTemplate) {
         this.postRepository = postRepository;
+        this.postMediaRepository = postMediaRepository;
         this.userRepository = userRepository;
         this.fileStorageService = fileStorageService;
         this.rabbitTemplate = rabbitTemplate;
     }
 
-    public PostResponse createPost(String username, MultipartFile file, String caption, String mediaType) throws IOException {
+    public PostResponse createPost(String username, List<MultipartFile> files, String caption) throws IOException {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("Không tìm thấy user"));
 
-        String rawFilePath = fileStorageService.saveRawFile(file);
-
         Post post = Post.builder()
                 .user(user)
-                .mediaType(MediaType.valueOf(mediaType))
-                .status(PostStatus.PROCESSING)
                 .caption(caption)
-                .mediaUrl(null)
                 .build();
 
-        Post result = postRepository.save(post);
+        Post savedPost  = postRepository.save(post);
 
-        MediaProcessingMessage message = new MediaProcessingMessage(result.getId(), rawFilePath,mediaType);
+        for (int i = 0; i < files.size(); i++) {
+            MultipartFile file = files.get(i);
+            String rawFilePath = fileStorageService.saveRawFile(file);
+            MediaType mediaType = detectMediaType(file.getOriginalFilename());
 
-        rabbitTemplate.convertAndSend(RabbitMQConfig.MEDIA_EXCHANGE, RabbitMQConfig.MEDIA_ROUTING_KEY, message);
-        return convertToPostResponse(result);
+            PostMedia postMedia = PostMedia.builder()
+                    .post(savedPost)
+                    .mediaType(mediaType)
+                    .status(PostStatus.PROCESSING)
+                    .position(i)
+                    .build();
+
+            PostMedia savedMedia = postMediaRepository.save(postMedia);
+
+            MediaProcessingMessage message = new MediaProcessingMessage(savedMedia.getId(), rawFilePath, mediaType);
+            rabbitTemplate.convertAndSend(RabbitMQConfig.MEDIA_EXCHANGE, RabbitMQConfig.MEDIA_ROUTING_KEY, message);
+        }
+
+        return convertToPostResponse(savedPost);
     }
 
     public PostResponse getPostById(Long id) {
@@ -71,12 +83,13 @@ public class PostService {
     }
 
     public List<PostResponse> getFeed() {
-        List<Post> posts = postRepository.findByStatusOrderByCreatedAtDesc(PostStatus.READY);
+        List<Post> posts = postRepository.OrderByCreatedAtDesc();
         List<PostResponse> postResponseList = new ArrayList<>();
 
         for (Post post : posts) {
-            PostResponse postResponse = convertToPostResponse(post);
-            postResponseList.add(postResponse);
+            if (post.getOverallStatus() == PostStatus.READY) {
+                postResponseList.add(convertToPostResponse(post));
+            }
         }
         return postResponseList;
     }
@@ -100,15 +113,41 @@ public class PostService {
                 .avatarUrl(user.getAvatarUrl())
                 .build();
 
+        List<PostMediaResponse> mediaResponses = new ArrayList<>();
+        for(PostMedia postMedia : post.getMedia()) {
+            mediaResponses.add(PostMediaResponse.builder()
+                    .mediaUrl(postMedia.getMediaUrl())
+                    .thumbnailUrl(postMedia.getThumbnailUrl())
+                    .mediaType(postMedia.getMediaType())
+                    .status(postMedia.getStatus())
+                    .position(postMedia.getPosition())
+                    .build());
+        }
+
         return PostResponse.builder()
                 .id(post.getId())
                 .user(userResponse)
-                .mediaUrl(post.getMediaUrl())
-                .mediaType(post.getMediaType())
-                .thumbnailUrl(post.getThumbnailUrl())
                 .caption(post.getCaption())
-                .status(post.getStatus())
+                .status(post.getOverallStatus())
+                .media(mediaResponses)
                 .createdAt(post.getCreatedAt())
                 .build();
     }
+
+    private MediaType detectMediaType(String filename) {
+        String extension = filename.substring(filename.lastIndexOf(".") + 1).toLowerCase();
+        List<String> imageExtensions = List.of("jpg", "jpeg", "png", "webp");
+        List<String> videoExtensions = List.of("mp4", "mov", "avi");
+
+        if (imageExtensions.contains(extension)) {
+            return MediaType.IMAGE;
+        } else if (videoExtensions.contains(extension)) {
+            return MediaType.VIDEO;
+        } else {
+            throw new UnsupportedMediaTypeException("Định dạng file không được hỗ trợ: " + extension);
+        }
+    }
 }
+
+
+

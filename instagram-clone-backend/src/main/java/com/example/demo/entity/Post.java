@@ -35,4 +35,30 @@ public class Post {
     )
     @OrderBy("position ASC")
     private List<PostMedia> media = new ArrayList<>();
+
+    public PostStatus getOverallStatus() {
+        if (media.isEmpty()) {
+            return PostStatus.PROCESSING;
+        }
+
+        boolean hasProcessing = false;
+        boolean hasFailed = false;
+
+        for (PostMedia m : media) {
+            if (m.getStatus() == PostStatus.PROCESSING) {
+                hasProcessing = true;
+            }
+            if (m.getStatus() == PostStatus.FAILED) {
+                hasFailed = true;
+            }
+        }
+
+        if (hasProcessing) {
+            return PostStatus.PROCESSING;
+        } else if (hasFailed) {
+            return PostStatus.FAILED;
+        } else {
+            return PostStatus.READY;
+        }
+    }
 }
