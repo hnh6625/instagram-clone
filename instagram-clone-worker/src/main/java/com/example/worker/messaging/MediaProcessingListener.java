@@ -2,9 +2,9 @@ package com.example.worker.messaging;
 
 import com.example.worker.config.RabbitMQConfig;
 import com.example.worker.entity.MediaType;
-import com.example.worker.entity.Post;
+import com.example.worker.entity.PostMedia;
 import com.example.worker.entity.PostStatus;
-import com.example.worker.repository.PostRepository;
+import com.example.worker.repository.PostMediaRepository;
 import com.example.worker.service.MediaProcessingService;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -22,13 +22,13 @@ import java.util.UUID;
 @Component
 public class MediaProcessingListener {
 
-    private final PostRepository postRepository;
+    private final PostMediaRepository postMediaRepository;
     private final MediaProcessingService mediaProcessingService;
     private final RabbitTemplate rabbitTemplate;
 
 
-    public MediaProcessingListener(PostRepository postRepository, MediaProcessingService mediaProcessingService, RabbitTemplate rabbitTemplate) {
-        this.postRepository = postRepository;
+    public MediaProcessingListener(PostMediaRepository postMediaRepository, MediaProcessingService mediaProcessingService, RabbitTemplate rabbitTemplate) {
+        this.postMediaRepository = postMediaRepository;
         this.mediaProcessingService = mediaProcessingService;
         this.rabbitTemplate = rabbitTemplate;
     }
@@ -43,14 +43,16 @@ public class MediaProcessingListener {
         }
 
         if (retryCount >= 3) {
-            Post post = postRepository.findById(message.getPostId())
+            PostMedia postMedia = postMediaRepository.findById(message.getPostMediaId())
                     .orElseThrow(() ->
-                            new RuntimeException("Post not found"));
+                            new RuntimeException("PostMedia not found"));
 
-            Post updatedPost = post.toBuilder()
+            PostMedia updatedPostMedia = postMedia.toBuilder()
                     .status(PostStatus.FAILED)
                     .build();
-            postRepository.save(updatedPost);
+
+            postMediaRepository.save(updatedPostMedia);
+
             rabbitTemplate.convertAndSend(
                     RabbitMQConfig.DLQ_EXCHANGE,
                     RabbitMQConfig.DLQ_ROUTING_KEY,
@@ -59,8 +61,8 @@ public class MediaProcessingListener {
 
             return;
         }
-        Post post = postRepository.findById(message.getPostId())
-                .orElseThrow(() -> new RuntimeException("post not found"));
+        PostMedia postMedia = postMediaRepository.findById(message.getPostMediaId())
+                .orElseThrow(() -> new RuntimeException("PostMedia not found"));
 
         String rawKey = message.getRawFileName();
 
@@ -95,7 +97,7 @@ public class MediaProcessingListener {
                 inputPath.toString()
         );
 
-        MediaType mediaType = MediaType.valueOf(message.getMediaType());
+        MediaType mediaType = message.getMediaType();
 
         if (mediaType == MediaType.IMAGE) {
             mediaProcessingService.processImage(
@@ -136,13 +138,13 @@ public class MediaProcessingListener {
         String mediaUrl = mediaProcessingService.buildMinioUrl(processedKey);
         String thumbnailUrl = mediaProcessingService.buildMinioUrl(thumbnailKey);
 
-        Post updatedPost = post.toBuilder()
+        PostMedia updatedPostMedia = postMedia.toBuilder()
                 .mediaUrl(mediaUrl)
                 .thumbnailUrl(thumbnailUrl)
                 .status(PostStatus.READY)
                 .build();
 
-        postRepository.save(updatedPost);
+        postMediaRepository.save(updatedPostMedia);
 
         Files.deleteIfExists(inputPath);
         Files.deleteIfExists(outputPath);
