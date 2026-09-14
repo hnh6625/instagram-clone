@@ -124,4 +124,22 @@ public class MediaProcessingService {
         return minioEndpoint + "/" + bucketName + "/" + key;
     }
 
+    public void createHls(String inputPath, String outputDirection) throws IOException, InterruptedException {
+        Path output = Paths.get(outputDirection);
+        Files.createDirectories(output);
+
+        Path playlistPath = output.resolve("playlist.m3u8");
+
+        List<String> command = List.of(
+                "ffmpeg", "-y",
+                "-i", inputPath,
+                "-c:v", "libx264",
+                "-c:a", "aac",
+                "-hls_time", "5",
+                "-hls_playlist_type", "vod",
+                playlistPath.toString()
+        );
+
+        runFFmpeg(command, playlistPath.toString());
+    }
 }
