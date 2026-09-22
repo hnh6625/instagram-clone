@@ -29,7 +29,6 @@ public class MediaProcessingListener {
     private final MediaProcessingService mediaProcessingService;
     private final RabbitTemplate rabbitTemplate;
 
-
     public MediaProcessingListener(PostMediaRepository postMediaRepository, MediaProcessingService mediaProcessingService, RabbitTemplate rabbitTemplate) {
         this.postMediaRepository = postMediaRepository;
         this.mediaProcessingService = mediaProcessingService;
@@ -66,6 +65,12 @@ public class MediaProcessingListener {
                 filePaths.getInputPath(),
                 filePaths.getOutputPath(),
                 filePaths.getThumbnailPath());
+        if (message.getMediaType() == MediaType.VIDEO) {
+            mediaProcessingService.createHls(
+                    filePaths.getInputPath().toString(),
+                    filePaths.getHlsPath().toString()
+            );
+        }
 
         String fileName = filePaths.getOutputPath()
                 .getFileName()
@@ -184,10 +189,19 @@ public class MediaProcessingListener {
                 thumbnailFileName
         );
 
+        Path hlsPath = Paths.get(
+                "temp",
+                "hls",
+                fileName
+        );
+
         return new MediaFilePaths(
                 inputPath,
                 outputPath,
-                thumbnailPath
+                thumbnailPath,
+                hlsPath
         );
     }
+
+
 }

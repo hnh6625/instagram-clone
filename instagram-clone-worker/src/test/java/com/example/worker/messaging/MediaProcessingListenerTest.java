@@ -137,5 +137,17 @@ public class MediaProcessingListenerTest {
         verify(channel, never()).basicAck(anyLong(), anyBoolean());
     }
 
+    @Test
+    void handleMessage_shouldCreateHlsWhenMediaTypeIsVideo()
+            throws IOException, InterruptedException {
+        listener.handleMessage(message,null,channel,123L);
+        verify(mediaProcessingService).createHls(anyString(),anyString());
+    }
+
+    @Test
+    void handleMessage_shouldUploadHlsPlaylistWhenMediaTypeIsVideo()
+            throws Exception {
+
+    }
 
 }

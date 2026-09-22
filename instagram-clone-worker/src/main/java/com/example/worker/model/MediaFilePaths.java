@@ -13,5 +13,5 @@ public class MediaFilePaths {
     private final Path inputPath;
     private final Path outputPath;
     private final Path thumbnailPath;
-
+    private final Path hlsPath;
 }
